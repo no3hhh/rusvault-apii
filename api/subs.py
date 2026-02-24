@@ -2,7 +2,6 @@ from http.server import BaseHTTPRequestHandler
 import json, urllib.parse
 
 from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api.formatters import TextFormatter
 
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
@@ -20,29 +19,13 @@ class handler(BaseHTTPRequestHandler):
             return self._json(400, {"ok": False, "error": "Invalid video ID"})
 
         try:
-            ytt = YouTubeTranscriptApi()
-            transcript = None
-            source = "unknown"
+            result = YouTubeTranscriptApi.get_transcript(video_id, languages=[lang, lang + "-auto"])
+            text = " ".join([entry["text"] for entry in result]).strip()
 
-            try:
-                transcript = ytt.fetch(video_id, languages=[lang])
-                source = "manual"
-            except Exception:
-                try:
-                    transcript = ytt.fetch(video_id, languages=[lang + "-auto", lang])
-                    source = "auto"
-                except Exception:
-                    try:
-                        transcript = ytt.fetch(video_id)
-                        source = "fallback"
-                    except Exception as e:
-                        return self._json(404, {"ok": False, "error": str(e)})
-
-            text = TextFormatter().format_transcript(transcript).strip()
             if len(text) < 10:
                 return self._json(404, {"ok": False, "error": "Too short"})
 
-            self._json(200, {"ok": True, "source": source, "text": text, "length": len(text)})
+            self._json(200, {"ok": True, "text": text, "length": len(text)})
         except Exception as e:
             self._json(500, {"ok": False, "error": str(e)})
 
