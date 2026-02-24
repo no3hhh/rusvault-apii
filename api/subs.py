@@ -4,6 +4,7 @@ import json, urllib.parse
 try:
     from youtube_transcript_api import YouTubeTranscriptApi
     LIB_OK = True
+    LIB_ERR = ""
 except Exception as e:
     LIB_OK = False
     LIB_ERR = str(e)
@@ -28,8 +29,9 @@ class handler(BaseHTTPRequestHandler):
             return
 
         try:
-            result = YouTubeTranscriptApi.get_transcript(video_id, languages=[lang, lang + "-auto"])
-            text = " ".join([entry["text"] for entry in result]).strip()
+            ytt = YouTubeTranscriptApi()
+            transcript = ytt.fetch(video_id, languages=[lang, lang + "-auto"])
+            text = " ".join([snippet.text for snippet in transcript.snippets]).strip()
             self.wfile.write(json.dumps({"ok": True, "text": text, "length": len(text)}).encode())
         except Exception as e:
             self.wfile.write(json.dumps({"ok": False, "error": str(e)}).encode())
